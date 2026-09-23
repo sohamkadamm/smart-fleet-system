@@ -644,8 +644,10 @@ class TestCompleteFleetSystem(unittest.TestCase):
         avail_d = next((d for d in res_d.json() if d["status"] == "AVAILABLE"), None)
 
         if avail_v and avail_d:
+            import uuid
+            unique_code = f"TRIP-3B-{uuid.uuid4().hex[:6].upper()}"
             trip_payload = {
-                "trip_code": "TRIP-TEST-3B-01",
+                "trip_code": unique_code,
                 "origin": "Mumbai (JNPT)",
                 "destination": "Pune (Chakan)",
                 "cargo_type": "Precision Auto Parts",
