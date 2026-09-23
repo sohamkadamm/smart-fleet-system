@@ -9,6 +9,8 @@ email-validator
 PyJWT
 httpx
 python-dotenv
+scikit-learn
+joblib
 
 # PostgreSQL driver (uncomment when moving to PostgreSQL)
 # psycopg2-binary

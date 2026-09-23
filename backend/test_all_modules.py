@@ -540,9 +540,40 @@ class TestCompleteFleetSystem(unittest.TestCase):
         self.assertEqual(res_profile.json()["full_name"], "Rajiv Menon Updated")
         print("[PASS] [Phase G.2 & G.4] Input validation and profile management verified.")
 
+    def test_28_ai_model_metrics(self):
+        """Phase 5.1: Academic ML model evaluation metrics endpoint returns verified ROC-AUC, Confusion Matrix, and Cost Metric."""
+        res = self.client.get("/api/v1/ai/model-metrics", headers=self.mgr_headers)
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data["model_name"], "RandomForestClassifier")
+        self.assertIn("roc_auc", data["metrics"])
+        self.assertGreater(data["metrics"]["roc_auc"], 0.70)
+        self.assertIn("scania_cost_metric", data["metrics"])
+        self.assertIn("confusion_matrix", data)
+        self.assertIn("tp", data["confusion_matrix"])
+        self.assertIn("baseline_comparisons", data)
+        self.assertIn("cost_reduction_vs_baseline_pct", data["baseline_comparisons"])
+        print("[PASS] [Phase 5.1] Model metrics endpoint returns verified ROC-AUC and Confusion Matrix.")
+
+    def test_29_ai_predict_maintenance_ml(self):
+        """Phase 5.1: Live predictive maintenance returns Scikit-Learn ML probability and Rule-Based baseline comparator."""
+        res = self.client.post("/api/v1/ai/predict-maintenance", json={"vehicle_id": 1}, headers=self.mgr_headers)
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertIn("ml_failure_probability", data)
+        self.assertIsNotNone(data["ml_failure_probability"])
+        self.assertIn("rule_based_baseline_probability", data)
+        self.assertIsNotNone(data["rule_based_baseline_probability"])
+        self.assertIn("top_contributing_factors", data)
+        self.assertGreater(len(data["top_contributing_factors"]), 0)
+        self.assertIn("model_info", data)
+        self.assertIn("algorithm", data["model_info"])
+        print("[PASS] [Phase 5.1] Predictive maintenance inference returns ML probability & baseline.")
+
 if __name__ == "__main__":
     print("\n=======================================================")
-    print("   Running Complete Backend Test Suite (Phase 1 & 2)")
+    print("   Running Complete Backend Test Suite (Phase 1, 2 & 5)")
     print("=======================================================")
     unittest.main()
+
 

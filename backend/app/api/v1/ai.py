@@ -1,23 +1,32 @@
 from datetime import date
 from typing import List, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from app.core.deps import get_db, get_current_user
 from app.core.ai_engine import ai_engine
 from app.models.user import User
 from app.models.vehicle import Vehicle
 from app.models.driver import Driver
-from app.models.maintenance import MaintenanceRecord
+from app.models.maintenance import MaintenanceRecord, ServiceType
 from app.models.fuel import FuelLog
 from app.schemas.ai import (
     MaintenancePredictionRequest,
     MaintenancePredictionResponse,
     FuelForecastRequest,
     RouteOptimizationRequest,
-    AIInsightsSummary
+    AIInsightsSummary,
+    ModelMetricsResponse
 )
 
 router = APIRouter(prefix="/ai", tags=["AI & Predictive Analytics Engine"])
+
+@router.get("/model-metrics", response_model=ModelMetricsResponse)
+def get_predictive_model_metrics(
+    current_user: User = Depends(get_current_user)
+):
+    """Returns verified academic test set evaluation metrics for the ML model (ROC-AUC, Precision, Recall, Confusion Matrix)."""
+    return ai_engine.get_model_metrics()
 
 @router.post("/predict-maintenance", response_model=MaintenancePredictionResponse)
 def predict_vehicle_maintenance(
@@ -25,7 +34,7 @@ def predict_vehicle_maintenance(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Predict failure risk and remaining days to maintenance using AI algorithms."""
+    """Predict failure risk and remaining days to maintenance using Scikit-Learn Random Forest model with rule-based baseline comparison."""
     vehicle = db.query(Vehicle).filter(Vehicle.id == req.vehicle_id).first()
     if not vehicle:
         raise HTTPException(status_code=404, detail="Vehicle not found.")
@@ -41,12 +50,24 @@ def predict_vehicle_maintenance(
     else:
         days_gap = 120  # Baseline default when no maintenance record exists
 
+    # Query vehicle historical emergency repairs and total repair costs
+    past_repairs_count = db.query(MaintenanceRecord).filter(
+        MaintenanceRecord.vehicle_id == vehicle.id,
+        MaintenanceRecord.service_type == ServiceType.EMERGENCY_REPAIR
+    ).count()
+
+    total_repair_cost = db.query(func.sum(MaintenanceRecord.cost)).filter(
+        MaintenanceRecord.vehicle_id == vehicle.id
+    ).scalar() or 0.0
+
     prediction = ai_engine.predict_maintenance_risk(
         odometer_km=vehicle.odometer_km,
         year=vehicle.year,
         days_since_last_service=days_gap,
         vehicle_type=vehicle.vehicle_type.value,
-        fuel_type=vehicle.fuel_type.value
+        fuel_type=vehicle.fuel_type.value,
+        past_emergency_repairs=past_repairs_count,
+        cumulative_cost_inr=float(total_repair_cost)
     )
 
     return {
@@ -59,7 +80,13 @@ def predict_vehicle_maintenance(
         "predicted_days_to_service": prediction["predicted_days_to_service"],
         "critical_component": prediction["critical_component"],
         "recommendation": prediction["recommendation"],
-        "factors": prediction["factors"]
+        "factors": prediction["factors"],
+        "ml_failure_probability": prediction.get("ml_failure_probability"),
+        "ml_risk_level": prediction.get("ml_risk_level"),
+        "rule_based_baseline_probability": prediction.get("rule_based_baseline_probability"),
+        "model_confidence": prediction.get("model_confidence"),
+        "top_contributing_factors": prediction.get("top_contributing_factors"),
+        "model_info": prediction.get("model_info")
     }
 
 @router.get("/fleet-health-overview", response_model=AIInsightsSummary)

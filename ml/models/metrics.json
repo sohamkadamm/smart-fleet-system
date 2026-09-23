@@ -1,0 +1,77 @@
+{
+  "model_name": "RandomForestClassifier",
+  "dataset_name": "Scania Trucks APS Sensor Benchmark & Fleet Telematics",
+  "benchmark_id": "UCI-421 / IDA Challenge",
+  "test_samples": 2000,
+  "class_balance_test": {
+    "negative_normal": 1646,
+    "positive_failure": 354
+  },
+  "metrics": {
+    "accuracy": 0.7985,
+    "precision": 0.4454,
+    "recall": 0.565,
+    "f1_score": 0.4981,
+    "roc_auc": 0.7884,
+    "scania_cost_metric": 79490
+  },
+  "confusion_matrix": {
+    "tn": 1397,
+    "fp": 249,
+    "fn": 154,
+    "tp": 200
+  },
+  "baseline_comparisons": {
+    "dummy_classifier": {
+      "accuracy": 0.706,
+      "recall": 0.1582,
+      "cost_metric": 151900
+    },
+    "logistic_regression": {
+      "accuracy": 0.726,
+      "roc_auc": 0.7966,
+      "recall": 0.7119,
+      "cost_metric": 55460
+    },
+    "cost_reduction_vs_baseline_pct": 47.67
+  },
+  "feature_importances": [
+    {
+      "feature": "km_since_last_service",
+      "importance": 0.2667
+    },
+    {
+      "feature": "days_since_service",
+      "importance": 0.2425
+    },
+    {
+      "feature": "cumulative_cost_inr",
+      "importance": 0.1707
+    },
+    {
+      "feature": "vehicle_age_years",
+      "importance": 0.1005
+    },
+    {
+      "feature": "critical_sensor_pressure_ratio",
+      "importance": 0.0814
+    },
+    {
+      "feature": "avg_daily_km",
+      "importance": 0.0701
+    },
+    {
+      "feature": "past_emergency_repairs",
+      "importance": 0.0681
+    }
+  ],
+  "feature_columns": [
+    "km_since_last_service",
+    "days_since_service",
+    "vehicle_age_years",
+    "past_emergency_repairs",
+    "cumulative_cost_inr",
+    "avg_daily_km",
+    "critical_sensor_pressure_ratio"
+  ]
+}

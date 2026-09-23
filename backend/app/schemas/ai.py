@@ -29,6 +29,13 @@ class MaintenancePredictionResponse(BaseModel):
     critical_component: str
     recommendation: str
     factors: Dict[str, float]
+    # Phase 5 ML Inference enhancements
+    ml_failure_probability: Optional[float] = None
+    ml_risk_level: Optional[str] = None
+    rule_based_baseline_probability: Optional[float] = None
+    model_confidence: Optional[float] = None
+    top_contributing_factors: Optional[List[str]] = None
+    model_info: Optional[Dict[str, Any]] = None
 
 class AIInsightsSummary(BaseModel):
     fleet_health_index: float
@@ -36,3 +43,15 @@ class AIInsightsSummary(BaseModel):
     estimated_monthly_fuel_savings_inr: float
     avg_driver_safety_rating: float
     ai_recommendations: List[str]
+
+class ModelMetricsResponse(BaseModel):
+    model_name: str
+    dataset_name: str
+    benchmark_id: str
+    test_samples: int
+    class_balance_test: Dict[str, int]
+    metrics: Dict[str, Any]
+    confusion_matrix: Dict[str, int]
+    baseline_comparisons: Dict[str, Any]
+    feature_importances: List[Dict[str, Any]]
+

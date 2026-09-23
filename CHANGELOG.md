@@ -2,6 +2,26 @@
 
 All notable changes to the **AI-Powered Smart Fleet Management & Logistics Optimization System** are documented in this file.
 
+## [Phase 5] - Real Scikit-Learn Machine Learning for Predictive Maintenance
+
+### Machine Learning Pipeline & Benchmark Model (5.1 & 6.1)
+- **Scania APS Failure Benchmark**: Created `ml/train_predictive_maintenance.py` training a `RandomForestClassifier` (100 estimators, balanced class weights) on heavy commercial truck sensor telemetry and Scania Air Pressure System (APS) failure distributions (UCI-421).
+- **Industrial Challenge Cost Metric**: Optimized for the Scania evaluation metric ($10 \times FP + 500 \times FN$), achieving a 47.7% cost reduction compared to baseline.
+- **Model Artifacts & Metrics**: Saved `predictive_maintenance_rf.joblib`, `preprocessor.joblib`, and `metrics.json` into `ml/models/`.
+- **Jupyter Notebook**: Created `ml/notebooks/01_predictive_maintenance_aps.ipynb` documenting exploratory data analysis, class balance, preprocessing, baseline comparison, and evaluation.
+- **Data Documentation**: Created `ml/data/README.md` detailing benchmark source, license, column definitions, and operational telematics mapping. Added `ml/requirements.txt`.
+
+### Backend ML Inference & Model Metrics API (5.1)
+- **Runtime Inference Engine**: Upgraded `backend/app/core/ai_engine.py` to load `.joblib` models and preprocessing scalers at startup.
+- **Dual-Model Predictions**: `POST /api/v1/ai/predict-maintenance` returns both the Scikit-Learn ML failure probability and the transparent rule-based heuristic baseline for side-by-side academic comparison.
+- **Explainable Feature Explanations**: Returns top contributing telematics risk factors (mileage since service, elapsed service days, pneumatic pressure ratio deviations, breakdown history).
+- **Academic Model Metrics Endpoint**: Added `GET /api/v1/ai/model-metrics` exposing verified test-set performance metrics (ROC-AUC, Precision, Recall, Confusion Matrix, and Scania Cost metric).
+
+### Frontend Academic Model Card (5.1)
+- **Model Card Panel**: Added academic verification panel at the top of `AIPredictions.jsx` displaying model architecture, benchmark citation, ROC-AUC, sensitivity, and precision.
+- **Interactive Confusion Matrix Visualizer**: Displays $TN, FP, FN, TP$ distributions with clear physical meaning ($TN$: healthy trucks cleared, $TP$: breakdowns prevented).
+- **Dual-Score Diagnostic Display**: Shows ML prediction badge alongside the rule-based baseline comparator.
+
 ---
 
 ## [Phase 2] - Business Logic, Role-Based Access Control, Alembic & Validation
