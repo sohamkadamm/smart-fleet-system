@@ -11,7 +11,11 @@ import {
   TrendingDown,
   Gauge,
   Calendar,
-  CheckCircle2
+  CheckCircle2,
+  AlertTriangle,
+  ShieldAlert,
+  Flame,
+  Search
 } from 'lucide-react';
 
 const FuelManagement = () => {
@@ -20,6 +24,7 @@ const FuelManagement = () => {
   const [vehicles, setVehicles] = useState([]);
   const [drivers, setDrivers] = useState([]);
   const [stats, setStats] = useState(null);
+  const [anomalies, setAnomalies] = useState(null);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [notification, setNotification] = useState(null);
@@ -29,16 +34,20 @@ const FuelManagement = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [fRes, sRes, vRes, dRes] = await Promise.all([
+      const [fRes, sRes, vRes, dRes, anomRes] = await Promise.all([
         apiClient.get('/fuel'),
         apiClient.get('/fuel/stats/summary'),
         apiClient.get('/vehicles'),
         apiClient.get('/drivers'),
+        apiClient.get('/fuel/anomalies').catch(() => ({ data: null }))
       ]);
       setFuelLogs(fRes.data);
       setStats(sRes.data);
       setVehicles(vRes.data);
       setDrivers(dRes.data);
+      if (anomRes?.data) {
+        setAnomalies(anomRes.data);
+      }
     } catch (err) {
       console.error('Failed to load fuel data', err);
     } finally {
@@ -60,7 +69,7 @@ const FuelManagement = () => {
           </div>
           <h1 className="text-2xl font-bold text-white tracking-tight">Fuel & Energy Management</h1>
           <p className="text-sm text-slate-400 mt-1">
-            Monitor refill logs, track fuel expenditure, and analyze vehicle-wise mileage efficiency (km/L & km/kWh).
+            Monitor refill logs, detect fuel theft/pilferage anomalies, and analyze vehicle-wise mileage efficiency (km/L & km/kWh).
           </p>
         </div>
 
@@ -120,6 +129,94 @@ const FuelManagement = () => {
           <div className="text-xs text-slate-500 mt-1">Average mileage efficiency</div>
         </div>
       </div>
+
+      {/* Fuel Theft & Anomaly Detection Radar Card */}
+      {anomalies && (
+        <div className="bg-slate-900 border border-red-500/30 rounded-2xl p-6 shadow-2xl relative overflow-hidden space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-800 gap-2">
+            <div className="flex items-center gap-2.5">
+              <div className="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400">
+                <ShieldAlert className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <span>Fuel Theft & Anomaly Radar (Statistical Detection)</span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-red-500/20 text-red-300 border border-red-500/30">
+                    {anomalies.total_anomalies_detected} Outliers Detected
+                  </span>
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Flags severe efficiency drops (&lt;65% baseline), suspected siphoning, injector leaks, and invoice over-billing.
+                </p>
+              </div>
+            </div>
+
+            <div className="text-right">
+              <span className="text-[10px] text-slate-400 uppercase font-semibold block">Estimated Pilferage Exposure</span>
+              <span className="text-xl font-black text-red-400">
+                ₹{anomalies.total_estimated_pilferage_loss_inr.toLocaleString('en-IN')}
+              </span>
+            </div>
+          </div>
+
+          {anomalies.anomalous_logs.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-slate-800 text-slate-400 font-mono text-[11px]">
+                    <th className="pb-2">Vehicle & Driver</th>
+                    <th className="pb-2">Station & Refill</th>
+                    <th className="pb-2">Mileage vs Expected</th>
+                    <th className="pb-2">Suspected Issue</th>
+                    <th className="pb-2">Est. Financial Loss</th>
+                    <th className="pb-2 text-right">Severity</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60 text-slate-300">
+                  {anomalies.anomalous_logs.map((anom, idx) => (
+                    <tr key={idx} className="hover:bg-slate-800/30">
+                      <td className="py-2.5">
+                        <span className="font-mono font-bold text-white block">{anom.license_plate}</span>
+                        <span className="text-[11px] text-slate-400">{anom.driver_name}</span>
+                      </td>
+                      <td className="py-2.5">
+                        <div className="text-slate-300">{anom.station_name}</div>
+                        <div className="text-[10px] text-slate-500">{anom.fuel_quantity_liters} L • {anom.invoice_number || 'No Invoice'}</div>
+                      </td>
+                      <td className="py-2.5 font-mono">
+                        <div className="text-red-400 font-bold">
+                          {anom.recorded_efficiency_km_l ? `${anom.recorded_efficiency_km_l} km/L` : '0.0 km/L'}
+                        </div>
+                        <div className="text-[10px] text-slate-500">Expected: {anom.expected_baseline_km_l} km/L (-{anom.efficiency_deviation_pct}%)</div>
+                      </td>
+                      <td className="py-2.5">
+                        <span className="font-medium text-amber-300">{anom.suspected_cause}</span>
+                      </td>
+                      <td className="py-2.5 font-mono font-bold text-red-400">
+                        ₹{anom.estimated_financial_loss_inr.toLocaleString('en-IN')}
+                      </td>
+                      <td className="py-2.5 text-right">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
+                          anom.severity === 'CRITICAL'
+                            ? 'bg-red-500/20 text-red-300 border-red-500/30'
+                            : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                        }`}>
+                          {anom.severity}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800 text-center text-xs text-emerald-400 flex items-center justify-center gap-2">
+              <CheckCircle2 className="w-4 h-4" />
+              <span>All logged fuel refills conform to expected vehicle mileage baselines. Zero fuel anomalies detected.</span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Fuel Logs Table */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">

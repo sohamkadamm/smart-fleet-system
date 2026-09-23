@@ -408,41 +408,89 @@ class FleetAIEngine:
         total_trips: int,
         on_time_trips: int,
         safety_score: float,
-        fuel_efficiency_score: float
+        fuel_efficiency_score: float,
+        experience_years: int = 1
     ) -> Dict[str, Any]:
-        """Compute composite performance score and tier for a commercial driver."""
+        """
+        Phase 3: Multi-factor academic performance scoring model for commercial heavy fleet drivers:
+        - On-Time SLA fulfillment (35% weight)
+        - Road Safety Compliance (25% weight)
+        - Eco-Driving Fuel Efficiency (25% weight)
+        - Route Experience & Trip Consistency (15% weight)
+        """
         if total_trips == 0:
             on_time_pct = 100.0
         else:
             on_time_pct = round((on_time_trips / total_trips) * 100.0, 1)
 
-        composite_score = round((on_time_pct * 0.4) + (safety_score * 0.3) + (fuel_efficiency_score * 0.3), 1)
+        exp_score = min(100.0, round(70.0 + min(experience_years, 10) * 3.0, 1))
 
-        if composite_score >= 93.0:
+        composite_score = round(
+            (on_time_pct * 0.35) +
+            (safety_score * 0.25) +
+            (fuel_efficiency_score * 0.25) +
+            (exp_score * 0.15),
+            1
+        )
+
+        if composite_score >= 92.0:
             grade = "A+"
             tier = "Senior Heavy Transport Lead (HMV)"
-            badge = "🏆 Star Driver"
-        elif composite_score >= 85.0:
+            badge = "🏆 Master Heavy Hauler"
+        elif fuel_efficiency_score >= 90.0:
             grade = "A"
             tier = "Commercial Fleet Driver"
-            badge = "⭐ High Efficiency"
-        elif composite_score >= 75.0:
+            badge = "🌿 Eco-Driving Champion"
+        elif safety_score >= 90.0:
+            grade = "A"
+            tier = "Commercial Fleet Driver"
+            badge = "🛡️ Zero-Incident Specialist"
+        elif composite_score >= 82.0:
+            grade = "B+"
+            tier = "Commercial Fleet Driver"
+            badge = "⭐ High Efficiency Driver"
+        elif composite_score >= 70.0:
             grade = "B"
             tier = "Standard Fleet Driver"
-            badge = "✓ Reliable"
+            badge = "✓ Certified Fleet Driver"
         else:
             grade = "C"
-            tier = "Refresher Training Recommended"
-            badge = "⚠️ Coaching Needed"
+            tier = "Refresher Training Candidate"
+            badge = "⚠️ Coaching Required"
+
+        # Actionable Coaching Recommendations
+        coaching_tips = []
+        strengths = []
+
+        if fuel_efficiency_score < 75.0:
+            coaching_tips.append("Maintain steady 55-65 km/h cruise on NH corridors to boost fuel economy and minimize high-RPM gear shifts.")
+        else:
+            strengths.append("Excellent throttle modulation & fuel economy discipline.")
+
+        if safety_score < 80.0:
+            coaching_tips.append("Review deceleration telematics on highway toll plaza approaches; maintain 3-second heavy vehicle following distance.")
+        else:
+            strengths.append("High adherence to speed limits and defensive commercial driving protocols.")
+
+        if on_time_pct < 85.0:
+            coaching_tips.append("Initiate pre-trip vehicle departure 20 minutes earlier to avoid peak metropolitan ring road bottlenecks.")
+        else:
+            strengths.append("Consistent on-time cargo delivery fulfillment.")
+
+        if not coaching_tips:
+            coaching_tips.append("Top-tier driving profile. Nominated as mentor driver for new commercial recruits.")
 
         return {
             "composite_score": composite_score,
             "on_time_rate_pct": on_time_pct,
             "safety_score": safety_score,
             "fuel_efficiency_score": fuel_efficiency_score,
+            "experience_score": exp_score,
             "grade": grade,
             "tier": tier,
-            "badge": badge
+            "badge": badge,
+            "coaching_tips": coaching_tips,
+            "strengths": strengths
         }
 
 ai_engine = FleetAIEngine()

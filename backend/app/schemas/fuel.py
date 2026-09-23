@@ -33,3 +33,30 @@ class FuelSummaryStats(BaseModel):
     average_fuel_cost_per_liter: float
     average_fleet_efficiency_km_per_unit: float
     total_logs_count: int
+
+# Phase 3: Fuel Anomaly & Pilferage Schemas
+
+class FuelAnomalyRecord(BaseModel):
+    fuel_log_id: int
+    vehicle_id: int
+    license_plate: str
+    vehicle_type: str
+    driver_id: Optional[int] = None
+    driver_name: Optional[str] = "Unassigned"
+    refill_date: Optional[str] = None
+    station_name: str
+    invoice_number: Optional[str] = None
+    fuel_quantity_liters: float
+    recorded_efficiency_km_l: Optional[float] = None
+    expected_baseline_km_l: float
+    efficiency_deviation_pct: float
+    suspected_cause: str
+    estimated_financial_loss_inr: float
+    severity: str
+
+class FuelAnomalySummaryResponse(BaseModel):
+    total_anomalies_detected: int
+    critical_anomalies_count: int
+    total_estimated_pilferage_loss_inr: float
+    anomalous_logs: list[FuelAnomalyRecord]
+

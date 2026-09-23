@@ -769,9 +769,88 @@ class TestCompleteFleetSystem(unittest.TestCase):
         self.assertEqual(pack_data["summary"]["boxes_packed_count"], 2)
         print("[PASS] [Phase 4.3] Optimization API endpoints /ai/optimize-vrp & /ai/cargo-packing verified.")
 
+    def test_37_fuel_anomaly_detection(self):
+        """Phase 3.1: Fuel Anomaly Detection engine flags statistical outliers and pilferage events."""
+        from app.models.fuel import FuelLog
+        from app.models.vehicle import Vehicle
+        from app.db.session import SessionLocal
+        from app.services.fuel_anomaly import FuelAnomalyDetector
+
+        db = SessionLocal()
+        try:
+            # 1. Insert an artificial low-efficiency fuel refill record (1.4 km/L on Heavy Truck)
+            v = db.query(Vehicle).first()
+            anom_log = FuelLog(
+                vehicle_id=v.id,
+                fuel_quantity=180.0,
+                unit_cost=89.62,
+                total_cost=180.0 * 89.62,
+                odometer_km=v.odometer_km + 250.0,
+                station_name="Highway Fuel Plaza Hub #4",
+                invoice_number="INV-ANOM-TEST-99",
+                fuel_type="DIESEL",
+                efficiency_km_per_unit=1.39 # Severe drop vs 4.0 km/L baseline
+            )
+            db.add(anom_log)
+            db.commit()
+
+            # 2. Scan via FuelAnomalyDetector service
+            anom_summary = FuelAnomalyDetector.detect_anomalies(db, create_alerts=True)
+            self.assertGreater(anom_summary["total_anomalies_detected"], 0)
+            self.assertGreater(anom_summary["total_estimated_pilferage_loss_inr"], 0.0)
+
+            # 3. Test API endpoint GET /fuel/anomalies
+            res_api = self.client.get("/api/v1/fuel/anomalies", headers=self.mgr_headers)
+            self.assertEqual(res_api.status_code, 200)
+            api_data = res_api.json()
+            self.assertIn("anomalous_logs", api_data)
+            self.assertGreater(len(api_data["anomalous_logs"]), 0)
+
+            first_anom = api_data["anomalous_logs"][0]
+            self.assertIn("suspected_cause", first_anom)
+            self.assertIn("efficiency_deviation_pct", first_anom)
+            self.assertIn("estimated_financial_loss_inr", first_anom)
+        finally:
+            db.close()
+        print("[PASS] [Phase 3.1] Fuel anomaly & pilferage detection engine verified.")
+
+    def test_38_driver_performance_coaching_and_leaderboard(self):
+        """Phase 3.2: Comprehensive Driver Performance scoring returns multi-factor breakdown and coaching tips."""
+        res = self.client.get("/api/v1/performance/leaderboard", headers=self.mgr_headers)
+        self.assertEqual(res.status_code, 200)
+        drivers = res.json()
+        self.assertGreater(len(drivers), 0)
+
+        # Check rankings order (descending by composite_score)
+        for i in range(len(drivers) - 1):
+            self.assertGreaterEqual(drivers[i]["composite_score"], drivers[i+1]["composite_score"])
+            self.assertEqual(drivers[i]["rank"], i + 1)
+
+        # Check multi-factor pillars & coaching cards
+        for d in drivers:
+            self.assertIn("on_time_rate_pct", d)
+            self.assertIn("safety_score", d)
+            self.assertIn("fuel_efficiency_score", d)
+            self.assertIn("experience_score", d)
+            self.assertIn("grade", d)
+            self.assertIn("tier", d)
+            self.assertIn("badge", d)
+            self.assertIn("coaching_tips", d)
+            self.assertGreater(len(d["coaching_tips"]), 0)
+            self.assertIn("strengths", d)
+
+        # Test single driver scorecard endpoint
+        first_d_id = drivers[0]["driver_id"]
+        res_card = self.client.get(f"/api/v1/performance/driver/{first_d_id}", headers=self.mgr_headers)
+        self.assertEqual(res_card.status_code, 200)
+        card_data = res_card.json()
+        self.assertIn("scorecard", card_data)
+        self.assertIn("coaching_tips", card_data["scorecard"])
+        print("[PASS] [Phase 3.2] Driver multi-factor performance ranking & coaching engine verified.")
+
 if __name__ == "__main__":
     print("\n=======================================================")
-    print("   Running Complete Backend Test Suite (Phase 1, 2, 5, 3B & 4)")
+    print("   Running Complete Backend Test Suite (Phase 1 to 5)")
     print("=======================================================")
     unittest.main()
 

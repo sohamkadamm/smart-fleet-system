@@ -9,8 +9,10 @@ from app.models.driver import Driver
 from app.schemas.fuel import (
     FuelLogCreate,
     FuelLogResponse,
-    FuelSummaryStats
+    FuelSummaryStats,
+    FuelAnomalySummaryResponse
 )
+from app.services.fuel_anomaly import FuelAnomalyDetector
 
 router = APIRouter(prefix="/fuel", tags=["Fuel & Energy Management"])
 
@@ -35,6 +37,17 @@ def enrich_fuel_log(f: FuelLog) -> dict:
         "vehicle_plate": v_plate,
         "driver_name": d_name,
     }
+
+@router.get("/anomalies", response_model=FuelAnomalySummaryResponse)
+def get_fuel_anomalies(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Phase 3: Statistical fuel consumption outlier & pilferage detection engine.
+    Scans logs for severe mileage drops, suspected fuel theft/leaks, and invoice overfilling.
+    """
+    return FuelAnomalyDetector.detect_anomalies(db, create_alerts=True)
 
 @router.get("/stats/summary", response_model=FuelSummaryStats)
 def get_fuel_summary_stats(
