@@ -16,7 +16,11 @@ from app.schemas.ai import (
     FuelForecastRequest,
     RouteOptimizationRequest,
     AIInsightsSummary,
-    ModelMetricsResponse
+    ModelMetricsResponse,
+    VRPOptimizationRequest,
+    VRPOptimizationResponse,
+    CargoPackingRequest,
+    CargoPackingResponse
 )
 
 router = APIRouter(prefix="/ai", tags=["AI & Predictive Analytics Engine"])
@@ -229,3 +233,116 @@ def optimize_route(
         fuel_type=req.fuel_type,
         db=db
     )
+
+@router.post("/optimize-vrp", response_model=VRPOptimizationResponse)
+def optimize_capacitated_vehicle_routing(
+    req: VRPOptimizationRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Phase 4: Multi-stop Capacitated Vehicle Routing Problem (CVRP) optimization using Google OR-Tools.
+    Evaluates optimal vehicle routes, capacities, and compares against a Naive Greedy Dispatch Baseline.
+    """
+    from app.services.vrp_solver import VRPSolver
+    from app.core.hubs import get_hub_by_name
+
+    # 1. Resolve Depot Location
+    depot_name = req.depot_name or "Mumbai (JNPT)"
+    dep_hub = get_hub_by_name(depot_name)
+    depot_lat = req.depot_lat or (dep_hub["latitude"] if dep_hub else 18.9496)
+    depot_lng = req.depot_lng or (dep_hub["longitude"] if dep_hub else 72.9525)
+
+    depot = {
+        "name": depot_name,
+        "latitude": depot_lat,
+        "longitude": depot_lng
+    }
+
+    # 2. Resolve Customer Stops
+    resolved_stops = []
+    for idx, s in enumerate(req.stops):
+        s_hub = get_hub_by_name(s.name)
+        s_lat = s.latitude or (s_hub["latitude"] if s_hub else depot_lat + 0.5)
+        s_lng = s.longitude or (s_hub["longitude"] if s_hub else depot_lng + 0.5)
+        resolved_stops.append({
+            "stop_id": s.stop_id or f"STOP_{idx+1:02d}",
+            "name": s.name,
+            "latitude": s_lat,
+            "longitude": s_lng,
+            "cargo_weight_kg": s.cargo_weight_kg
+        })
+
+    # 3. Resolve Vehicles
+    if req.vehicle_ids:
+        vehicles_db = db.query(Vehicle).filter(Vehicle.id.in_(req.vehicle_ids)).all()
+    else:
+        vehicles_db = db.query(Vehicle).filter(
+            getattr(Vehicle, "is_deleted", False) == False
+        ).limit(4).all()
+
+    if not vehicles_db:
+        # Fallback dummy vehicles if fleet is empty
+        vehicles_data = [
+            {"id": 1, "license_plate": "MH-12-TRK-01", "make_model": "Tata Prima 4028", "max_payload_kg": 8000.0},
+            {"id": 2, "license_plate": "MH-12-TRK-02", "make_model": "Ashok Leyland 3520", "max_payload_kg": 8000.0}
+        ]
+    else:
+        vehicles_data = [
+            {
+                "id": v.id,
+                "license_plate": v.license_plate,
+                "make_model": f"{v.make} {v.model}",
+                "max_payload_kg": float(v.max_payload_kg)
+            }
+            for v in vehicles_db
+        ]
+
+    result = VRPSolver.solve_cvrp(
+        depot=depot,
+        stops=resolved_stops,
+        vehicles=vehicles_data,
+        db=db
+    )
+
+    return result
+
+@router.post("/cargo-packing", response_model=CargoPackingResponse)
+def pack_cargo_3d(
+    req: CargoPackingRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Phase 4: 3D Cargo / Bin Packing Heuristic Engine (First-Fit Decreasing).
+    Calculates volumetric efficiency, payload capacity utilization, and 3D spatial layout.
+    """
+    from app.services.cargo_packer import CargoPacker
+
+    container_dims = req.container
+
+    if req.vehicle_id and not container_dims:
+        vehicle = db.query(Vehicle).filter(Vehicle.id == req.vehicle_id).first()
+        if vehicle:
+            # Calibrate container size by vehicle type
+            v_type = vehicle.vehicle_type.value if hasattr(vehicle.vehicle_type, "value") else str(vehicle.vehicle_type)
+            if v_type in ["TRUCK", "CONTAINER", "TRAILER"]:
+                container_dims = {
+                    "name": f"{vehicle.make} {vehicle.model} (Heavy Container)",
+                    "length_cm": 600.0,
+                    "width_cm": 240.0,
+                    "height_cm": 240.0,
+                    "max_payload_kg": float(vehicle.max_payload_kg)
+                }
+            else:
+                container_dims = {
+                    "name": f"{vehicle.make} {vehicle.model} (Medium Bay)",
+                    "length_cm": 420.0,
+                    "width_cm": 200.0,
+                    "height_cm": 200.0,
+                    "max_payload_kg": float(vehicle.max_payload_kg)
+                }
+
+    boxes_data = [b.model_dump() for b in req.boxes]
+    return CargoPacker.pack_cargo(boxes_data, container_dims=container_dims)
+

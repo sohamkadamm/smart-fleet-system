@@ -11,6 +11,7 @@ httpx
 python-dotenv
 scikit-learn
 joblib
+ortools
 
 # PostgreSQL driver (uncomment when moving to PostgreSQL)
 # psycopg2-binary

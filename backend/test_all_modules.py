@@ -669,9 +669,109 @@ class TestCompleteFleetSystem(unittest.TestCase):
         else:
             print("[SKIP] [Phase 3B.4] No available vehicle/driver for dispatch test.")
 
+    def test_34_vrp_solver_cvrp(self):
+        """Phase 4.1: Google OR-Tools CVRP solver partitions multi-stop deliveries respecting vehicle capacities."""
+        from app.services.vrp_solver import VRPSolver
+
+        depot = {"name": "Mumbai (JNPT)", "latitude": 18.9496, "longitude": 72.9525}
+        stops = [
+            {"name": "Pune (Chakan)", "latitude": 18.7606, "longitude": 73.8636, "cargo_weight_kg": 2500.0},
+            {"name": "Ahmedabad (Sanand)", "latitude": 22.9868, "longitude": 72.3804, "cargo_weight_kg": 4000.0},
+            {"name": "Bengaluru (Peenya)", "latitude": 13.0285, "longitude": 77.5195, "cargo_weight_kg": 3500.0},
+            {"name": "Hyderabad (Shamshabad)", "latitude": 17.2403, "longitude": 78.4294, "cargo_weight_kg": 2800.0}
+        ]
+        vehicles = [
+            {"id": 1, "license_plate": "MH-12-TRK-01", "make_model": "Tata Prima 4028", "max_payload_kg": 7000.0},
+            {"id": 2, "license_plate": "MH-12-TRK-02", "make_model": "Ashok Leyland 3520", "max_payload_kg": 7000.0}
+        ]
+
+        result = VRPSolver.solve_cvrp(depot, stops, vehicles)
+        self.assertEqual(result["status"], "OPTIMAL_SOLVED")
+        self.assertGreater(result["total_fleet_distance_km"], 200.0)
+        self.assertEqual(result["total_stops_serviced"], 4)
+        self.assertGreaterEqual(result["active_vehicles_utilized"], 1)
+
+        # Verify no vehicle exceeded payload
+        for route in result["vehicle_routes"]:
+            self.assertLessEqual(route["payload_utilized_kg"], route["max_payload_kg"])
+            self.assertIn("route_geometry", route)
+
+        # Verify Academic Comparison against Naive Greedy Dispatch
+        comp = result["academic_comparison"]
+        self.assertIsNotNone(comp)
+        self.assertIn("Google OR-Tools", comp["solver_algorithm"])
+        self.assertIn("Naive Nearest-Neighbor", comp["baseline_algorithm"])
+        self.assertGreaterEqual(comp["distance_saved_km"], 0.0)
+        self.assertGreaterEqual(comp["operating_cost_saved_inr"], 0.0)
+        print("[PASS] [Phase 4.1] Google OR-Tools CVRP solver & academic baseline comparator verified.")
+
+    def test_35_cargo_packer_3d(self):
+        """Phase 4.2: 3D Cargo / Bin Packing heuristic computes spatial layout and volume/weight utilization."""
+        from app.services.cargo_packer import CargoPacker
+
+        boxes = [
+            {"label": "Engine Blocks Pallet", "length_cm": 120.0, "width_cm": 100.0, "height_cm": 80.0, "weight_kg": 850.0},
+            {"label": "Gearbox Crates", "length_cm": 100.0, "width_cm": 80.0, "height_cm": 70.0, "weight_kg": 450.0},
+            {"label": "Brake Assembly Boxes", "length_cm": 80.0, "width_cm": 60.0, "height_cm": 50.0, "weight_kg": 220.0},
+            {"label": "Electronic ECUs Carton", "length_cm": 50.0, "width_cm": 40.0, "height_cm": 30.0, "weight_kg": 45.0, "fragile": True},
+            # Oversized item to test rejection
+            {"label": "Gigantic Turbine Oversized", "length_cm": 900.0, "width_cm": 500.0, "height_cm": 500.0, "weight_kg": 95000.0}
+        ]
+
+        result = CargoPacker.pack_cargo(boxes)
+        self.assertEqual(result["status"], "PACKING_COMPLETE")
+        summary = result["summary"]
+        self.assertEqual(summary["total_boxes_requested"], 5)
+        self.assertEqual(summary["boxes_packed_count"], 4)
+        self.assertEqual(summary["unpacked_boxes_count"], 1) # Oversized rejected
+        self.assertGreater(summary["volumetric_efficiency_pct"], 0.0)
+        self.assertLessEqual(summary["volumetric_efficiency_pct"], 100.0)
+        self.assertGreater(summary["axle_balance_score"], 40.0)
+
+        # Check 3D positions assigned
+        for p in result["packed_items"]:
+            self.assertIn("position_x_cm", p)
+            self.assertIn("position_y_cm", p)
+            self.assertIn("position_z_cm", p)
+        print("[PASS] [Phase 4.2] 3D Cargo Packing heuristic & spatial placement verified.")
+
+    def test_36_api_optimize_vrp_and_cargo_packing(self):
+        """Phase 4.3: FastAPI endpoints /ai/optimize-vrp and /ai/cargo-packing return validated JSON."""
+        # 1. Test POST /ai/optimize-vrp
+        vrp_payload = {
+            "depot_name": "Mumbai (JNPT)",
+            "stops": [
+                {"name": "Pune (Chakan)", "cargo_weight_kg": 2000.0},
+                {"name": "Ahmedabad (Sanand)", "cargo_weight_kg": 3000.0},
+                {"name": "Bengaluru (Peenya)", "cargo_weight_kg": 2500.0}
+            ]
+        }
+        res_vrp = self.client.post("/api/v1/ai/optimize-vrp", json=vrp_payload, headers=self.mgr_headers)
+        self.assertEqual(res_vrp.status_code, 200)
+        vrp_data = res_vrp.json()
+        self.assertEqual(vrp_data["status"], "OPTIMAL_SOLVED")
+        self.assertEqual(vrp_data["total_stops_serviced"], 3)
+        self.assertIn("academic_comparison", vrp_data)
+        self.assertIn("vehicle_routes", vrp_data)
+        self.assertGreater(len(vrp_data["vehicle_routes"]), 0)
+
+        # 2. Test POST /ai/cargo-packing
+        pack_payload = {
+            "boxes": [
+                {"label": "Pharma Carton A", "length_cm": 60.0, "width_cm": 40.0, "height_cm": 40.0, "weight_kg": 30.0},
+                {"label": "Pharma Carton B", "length_cm": 60.0, "width_cm": 40.0, "height_cm": 40.0, "weight_kg": 30.0}
+            ]
+        }
+        res_pack = self.client.post("/api/v1/ai/cargo-packing", json=pack_payload, headers=self.mgr_headers)
+        self.assertEqual(res_pack.status_code, 200)
+        pack_data = res_pack.json()
+        self.assertEqual(pack_data["status"], "PACKING_COMPLETE")
+        self.assertEqual(pack_data["summary"]["boxes_packed_count"], 2)
+        print("[PASS] [Phase 4.3] Optimization API endpoints /ai/optimize-vrp & /ai/cargo-packing verified.")
+
 if __name__ == "__main__":
     print("\n=======================================================")
-    print("   Running Complete Backend Test Suite (Phase 1, 2, 5 & 3B)")
+    print("   Running Complete Backend Test Suite (Phase 1, 2, 5, 3B & 4)")
     print("=======================================================")
     unittest.main()
 
