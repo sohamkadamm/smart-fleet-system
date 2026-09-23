@@ -150,14 +150,25 @@ class TestCompleteFleetSystem(unittest.TestCase):
     def test_13_register_always_creates_driver(self):
         """BUG FIX 1.2: Public registration must always create a DRIVER, even if 'role' is sent."""
         import uuid
-        unique_email = f"attacker_{uuid.uuid4().hex[:6]}@test.com"
+        unique_email = f"candidate_{uuid.uuid4().hex[:6]}@test.com"
         res = self.client.post("/api/v1/auth/register", json={
-            "full_name": "Test Attacker",
+            "full_name": "Test Driver Candidate",
             "email": unique_email,
-            "password": "Attack@123"
+            "password": "Candidate@123",
+            "role": "ADMIN"  # Attempt privilege escalation
         })
         self.assertEqual(res.status_code, 201)
-        self.assertEqual(res.json()["user"]["role"], "DRIVER")
+        user_data = res.json()["user"]
+        self.assertEqual(user_data["role"], "DRIVER")
+        
+        # Clean up created test user immediately so it does not pollute demo database
+        from app.models.user import User
+        db = SessionLocal()
+        created_user = db.query(User).filter(User.id == user_data["id"]).first()
+        if created_user:
+            db.delete(created_user)
+            db.commit()
+        db.close()
         print("[PASS] [Phase 1.2] Register always creates DRIVER — security fix verified.")
 
     def test_14_invalid_maintenance_status_returns_422(self):
