@@ -325,6 +325,8 @@ def seed_large_fleet_dataset(db: Session, num_vehicles: int = 16, num_drivers: i
             actual_arrival=act_arr,
             notes=f"GST E-Way Bill: {ewb_number}. FASTag enabled for toll plaza auto-clearance."
         ))
+        if t_status == TripStatus.IN_TRANSIT and v.status != VehicleStatus.IN_MAINTENANCE:
+            v.status = VehicleStatus.ON_TRIP
         trips_created += 1
     db.commit()
 
