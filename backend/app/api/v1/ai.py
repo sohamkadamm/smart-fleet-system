@@ -217,6 +217,7 @@ def forecast_fuel(
 @router.post("/optimize-route")
 def optimize_route(
     req: RouteOptimizationRequest,
+    db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """Generate multi-criteria AI route comparison with efficiency scoring."""
@@ -225,5 +226,6 @@ def optimize_route(
         destination=req.destination,
         distance_km=req.distance_km,
         cargo_weight_kg=req.cargo_weight_kg,
-        fuel_type=req.fuel_type
+        fuel_type=req.fuel_type,
+        db=db
     )

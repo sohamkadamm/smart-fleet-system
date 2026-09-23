@@ -291,10 +291,68 @@ class FleetAIEngine:
         destination: str,
         distance_km: float,
         cargo_weight_kg: float,
-        fuel_type: str
+        fuel_type: str,
+        db: Optional[Any] = None
     ) -> List[Dict[str, Any]]:
         """Multi-criteria route evaluation across Indian National Highway corridors."""
-        # 1. Eco Express Corridor (e.g. Samruddhi Mahamarg / Dedicated Expressway)
+        from app.core.hubs import get_hub_by_name
+        from app.services.routing import RoutingService
+
+        orig_hub = get_hub_by_name(origin)
+        dest_hub = get_hub_by_name(destination)
+
+        real_routes = []
+        if orig_hub and dest_hub:
+            try:
+                res = RoutingService.get_route(
+                    orig_hub["latitude"], orig_hub["longitude"],
+                    dest_hub["latitude"], dest_hub["longitude"],
+                    db=db,
+                    get_alternatives=True,
+                    origin_name=origin,
+                    dest_name=destination
+                )
+                if res and res.get("distance_km"):
+                    primary_dist = res["distance_km"]
+                    primary_dur = res["duration_hours"]
+                    primary_geom = res.get("geometry", [])
+
+                    real_routes.append({
+                        "route_id": "OSRM_PRIMARY_01",
+                        "name": f"🌿 Recommended Freight Highway ({orig_hub['city']} → {dest_hub['city']})",
+                        "tag": "Optimized Real-Road Path (FASTag Corridor)",
+                        "distance_km": primary_dist,
+                        "duration_hours": primary_dur,
+                        "estimated_delay_risk": "Low (NHAI Access Controlled)",
+                        "ai_efficiency_score": 94 if fuel_type == "ELECTRIC" else 91,
+                        "is_recommended": True,
+                        "geometry": primary_geom,
+                        "highlights": f"Calibrated commercial truck routing. {primary_dist} km via national logistics spine."
+                    })
+
+                    # If alternatives exist in OSRM
+                    for idx, alt in enumerate(res.get("alternatives", []), start=2):
+                        alt_dist = alt["distance_km"]
+                        alt_dur = alt["duration_hours"]
+                        real_routes.append({
+                            "route_id": f"OSRM_ALT_{idx:02d}",
+                            "name": f"⚡ Alternative Highway Alignment {idx - 1}",
+                            "tag": "Alternate Toll Corridor",
+                            "distance_km": alt_dist,
+                            "duration_hours": alt_dur,
+                            "estimated_delay_risk": "Moderate (Higher Freight Traffic)",
+                            "ai_efficiency_score": max(70, round(91 - abs(alt_dist - primary_dist) * 0.15)),
+                            "is_recommended": False,
+                            "geometry": alt.get("geometry", []),
+                            "highlights": f"Alternative state/interstate bypass route ({alt_dist} km)."
+                        })
+            except Exception:
+                pass
+
+        if real_routes:
+            return real_routes
+
+        # Fallback to calibrated models if not between known hubs or network offline
         eco_dist = round(distance_km * 1.03, 1)
         eco_dur_hours = round(eco_dist / 65.0, 2)
         eco_score = 95 if fuel_type == "ELECTRIC" else 90

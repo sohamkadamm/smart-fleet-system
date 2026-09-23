@@ -570,9 +570,106 @@ class TestCompleteFleetSystem(unittest.TestCase):
         self.assertIn("algorithm", data["model_info"])
         print("[PASS] [Phase 5.1] Predictive maintenance inference returns ML probability & baseline.")
 
+    def test_30_hubs_and_distance_matrix(self):
+        """Phase 3B.1: Indian Logistics Freight Hubs endpoint returns verified freight terminals."""
+        res = self.client.get("/api/v1/trips/hubs", headers=self.mgr_headers)
+        self.assertEqual(res.status_code, 200)
+        hubs = res.json()
+        self.assertGreaterEqual(len(hubs), 8)
+        hub_names = [h["name"] for h in hubs]
+        self.assertTrue(any("Mumbai" in name for name in hub_names))
+        self.assertTrue(any("Delhi" in name for name in hub_names))
+        self.assertTrue(any("Pune" in name for name in hub_names))
+        for hub in hubs:
+            self.assertIn("latitude", hub)
+            self.assertIn("longitude", hub)
+            self.assertGreater(hub["latitude"], 8.0)
+            self.assertLess(hub["latitude"], 38.0)
+        print("[PASS] [Phase 3B.1] Logistics freight hubs verified with valid Indian coordinates.")
+
+    def test_31_osrm_routing_service_cache(self):
+        """Phase 3B.2: OSRM Routing Service calculates real road distance and caches in database."""
+        from app.services.routing import RoutingService
+        from app.db.session import SessionLocal
+
+        db = SessionLocal()
+        try:
+            # Mumbai JNPT to Pune Chakan coordinates
+            route = RoutingService.get_route(18.9496, 72.9525, 18.7606, 73.8636, db=db, origin_name="Mumbai", dest_name="Pune")
+            self.assertIn("distance_km", route)
+            self.assertGreater(route["distance_km"], 100.0)
+            self.assertLess(route["distance_km"], 250.0)
+            self.assertIn("duration_hours", route)
+            self.assertGreater(route["duration_hours"], 2.0)
+            self.assertIn("geometry", route)
+            self.assertGreater(len(route["geometry"]), 2)
+
+            # Second call should fetch from persistent route cache
+            cached_route = RoutingService.get_route(18.9496, 72.9525, 18.7606, 73.8636, db=db)
+            self.assertEqual(cached_route["source"], "DB_CACHE")
+            self.assertEqual(cached_route["distance_km"], route["distance_km"])
+        finally:
+            db.close()
+        print("[PASS] [Phase 3B.2] OSRM Routing Service & Persistent Cache verified.")
+
+    def test_32_live_gps_telematics_interpolation(self):
+        """Phase 3B.3: Live GPS endpoint interpolates vehicle coordinates and logs breadcrumb history."""
+        res_live = self.client.get("/api/v1/gps/live", headers=self.mgr_headers)
+        self.assertEqual(res_live.status_code, 200)
+        fleet = res_live.json()
+        self.assertGreater(len(fleet), 0)
+
+        first_v = fleet[0]
+        self.assertIn("latitude", first_v)
+        self.assertIn("longitude", first_v)
+        self.assertIn("speed_kmh", first_v)
+        self.assertIn("heading_degrees", first_v)
+        self.assertIn("battery_or_fuel_pct", first_v)
+
+        # Test breadcrumb history endpoint
+        v_id = first_v["vehicle_id"]
+        res_hist = self.client.get(f"/api/v1/gps/history/{v_id}?limit=20", headers=self.mgr_headers)
+        self.assertEqual(res_hist.status_code, 200)
+        hist_data = res_hist.json()
+        self.assertEqual(hist_data["vehicle_id"], v_id)
+        self.assertIn("history", hist_data)
+        print("[PASS] [Phase 3B.3] Live GPS telematics & breadcrumb history verified.")
+
+    def test_33_trip_creation_with_coordinates_and_osrm(self):
+        """Phase 3B.4: Dispatching a trip with hub names auto-resolves coordinates and geometry."""
+        # Find an available vehicle and driver
+        res_v = self.client.get("/api/v1/vehicles", headers=self.mgr_headers)
+        avail_v = next((v for v in res_v.json() if v["status"] == "AVAILABLE"), None)
+        res_d = self.client.get("/api/v1/drivers", headers=self.mgr_headers)
+        avail_d = next((d for d in res_d.json() if d["status"] == "AVAILABLE"), None)
+
+        if avail_v and avail_d:
+            trip_payload = {
+                "trip_code": "TRIP-TEST-3B-01",
+                "origin": "Mumbai (JNPT)",
+                "destination": "Pune (Chakan)",
+                "cargo_type": "Precision Auto Parts",
+                "cargo_weight_kg": 2000.0,
+                "vehicle_id": avail_v["id"],
+                "driver_id": avail_d["id"],
+                "status": "SCHEDULED",
+                "scheduled_departure": "2026-10-15T08:00:00",
+                "estimated_arrival": "2026-10-15T13:00:00"
+            }
+            res_trip = self.client.post("/api/v1/trips", json=trip_payload, headers=self.mgr_headers)
+            self.assertEqual(res_trip.status_code, 201)
+            t_data = res_trip.json()
+            self.assertIsNotNone(t_data.get("origin_lat"))
+            self.assertIsNotNone(t_data.get("dest_lat"))
+            self.assertIsNotNone(t_data.get("route_geometry"))
+            self.assertGreater(t_data.get("distance_km", 0), 100.0)
+            print("[PASS] [Phase 3B.4] Dispatch trip automatically resolves hub coordinates and OSRM geometry.")
+        else:
+            print("[SKIP] [Phase 3B.4] No available vehicle/driver for dispatch test.")
+
 if __name__ == "__main__":
     print("\n=======================================================")
-    print("   Running Complete Backend Test Suite (Phase 1, 2 & 5)")
+    print("   Running Complete Backend Test Suite (Phase 1, 2, 5 & 3B)")
     print("=======================================================")
     unittest.main()
 

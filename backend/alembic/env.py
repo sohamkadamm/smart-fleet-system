@@ -21,6 +21,8 @@ from app.models.trip import Trip
 from app.models.fuel import FuelLog
 from app.models.maintenance import MaintenanceRecord
 from app.models.notification import Notification
+from app.models.gps import GPSLocation
+from app.models.route_cache import RouteCache
 
 config = context.config
 

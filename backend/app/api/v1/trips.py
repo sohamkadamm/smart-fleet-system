@@ -1,4 +1,5 @@
-from datetime import datetime, date
+import json
+from datetime import datetime, date, timedelta
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
@@ -7,12 +8,15 @@ from app.models.user import User, UserRole
 from app.models.trip import Trip, TripStatus
 from app.models.vehicle import Vehicle, VehicleStatus
 from app.models.driver import Driver, DriverStatus
+from app.core.hubs import get_hub_by_name, list_all_hubs
+from app.services.routing import RoutingService
 from app.schemas.trip import (
     TripCreate,
     TripUpdate,
     TripStatusUpdate,
     TripResponse,
-    TripSummaryStats
+    TripSummaryStats,
+    HubResponse
 )
 
 router = APIRouter(prefix="/trips", tags=["Trip & Delivery Management"])
@@ -39,12 +43,24 @@ def enrich_trip(t: Trip) -> dict:
         "estimated_arrival": t.estimated_arrival,
         "actual_arrival": t.actual_arrival,
         "notes": t.notes,
+        "origin_lat": t.origin_lat,
+        "origin_lng": t.origin_lng,
+        "dest_lat": t.dest_lat,
+        "dest_lng": t.dest_lng,
+        "route_geometry": t.route_geometry,
         "created_at": t.created_at,
         "updated_at": t.updated_at,
         "vehicle_plate": v_plate,
         "vehicle_model": v_model,
         "driver_name": d_name,
     }
+
+@router.get("/hubs", response_model=List[HubResponse])
+def get_hubs(
+    current_user: User = Depends(get_current_user)
+):
+    """List verified Indian logistics freight hubs with coordinates."""
+    return list_all_hubs()
 
 @router.get("/stats/summary", response_model=TripSummaryStats)
 def get_trip_summary_stats(
@@ -148,20 +164,69 @@ def create_trip(
             detail=f"Selected driver {driver.full_name}'s license expired on {driver.license_expiry}."
         )
 
+    # Resolve coordinates if not provided
+    orig_lat = trip_in.origin_lat
+    orig_lng = trip_in.origin_lng
+    dest_lat = trip_in.dest_lat
+    dest_lng = trip_in.dest_lng
+
+    if orig_lat is None or orig_lng is None:
+        hub = get_hub_by_name(trip_in.origin)
+        if hub:
+            orig_lat = hub["latitude"]
+            orig_lng = hub["longitude"]
+
+    if dest_lat is None or dest_lng is None:
+        hub = get_hub_by_name(trip_in.destination)
+        if hub:
+            dest_lat = hub["latitude"]
+            dest_lng = hub["longitude"]
+
+    dist_km = trip_in.distance_km
+    dur_hrs = trip_in.estimated_duration_hours
+    geom_str = trip_in.route_geometry
+
+    if orig_lat is not None and orig_lng is not None and dest_lat is not None and dest_lng is not None:
+        try:
+            route_res = RoutingService.get_route(
+                orig_lat, orig_lng, dest_lat, dest_lng,
+                db=db,
+                origin_name=trip_in.origin,
+                dest_name=trip_in.destination
+            )
+            if dist_km is None:
+                dist_km = route_res.get("distance_km", 150.0)
+            if dur_hrs is None:
+                dur_hrs = route_res.get("duration_hours", 3.0)
+            if not geom_str and route_res.get("geometry"):
+                geom_str = json.dumps(route_res["geometry"])
+        except Exception:
+            pass
+
+    if dist_km is None:
+        dist_km = 150.0
+    if dur_hrs is None:
+        dur_hrs = 3.0
+
     trip = Trip(
         trip_code=trip_in.trip_code.strip().upper(),
         origin=trip_in.origin.strip(),
         destination=trip_in.destination.strip(),
         cargo_type=trip_in.cargo_type.strip(),
         cargo_weight_kg=trip_in.cargo_weight_kg,
-        distance_km=trip_in.distance_km,
-        estimated_duration_hours=trip_in.estimated_duration_hours,
+        distance_km=dist_km,
+        estimated_duration_hours=dur_hrs,
         vehicle_id=trip_in.vehicle_id,
         driver_id=trip_in.driver_id,
         status=trip_in.status,
         scheduled_departure=trip_in.scheduled_departure,
         estimated_arrival=trip_in.estimated_arrival,
-        notes=trip_in.notes
+        notes=trip_in.notes,
+        origin_lat=orig_lat,
+        origin_lng=orig_lng,
+        dest_lat=dest_lat,
+        dest_lng=dest_lng,
+        route_geometry=geom_str
     )
 
     if trip.status == TripStatus.IN_TRANSIT:

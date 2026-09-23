@@ -17,6 +17,12 @@ class TripBase(BaseModel):
     scheduled_departure: datetime
     estimated_arrival: datetime
     notes: Optional[str] = None
+    # 3B OpenStreetMap Coordinates and Route
+    origin_lat: Optional[float] = None
+    origin_lng: Optional[float] = None
+    dest_lat: Optional[float] = None
+    dest_lng: Optional[float] = None
+    route_geometry: Optional[str] = None
 
     @model_validator(mode="after")
     def validate_arrival_after_departure(self):
@@ -25,7 +31,18 @@ class TripBase(BaseModel):
         return self
 
 class TripCreate(TripBase):
-    pass
+    distance_km: Optional[float] = Field(None, gt=0)
+    estimated_duration_hours: Optional[float] = Field(None, gt=0)
+
+class HubResponse(BaseModel):
+    id: str
+    name: str
+    full_name: str
+    city: str
+    state: str
+    latitude: float
+    longitude: float
+    type: str
 
 class TripUpdate(BaseModel):
     origin: Optional[str] = None

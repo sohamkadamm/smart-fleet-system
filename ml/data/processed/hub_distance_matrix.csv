@@ -1,0 +1,57 @@
+origin_id,origin_name,origin_lat,origin_lng,dest_id,dest_name,dest_lat,dest_lng,distance_km,truck_duration_hours,is_estimated
+HUB_BOM,Mumbai (JNPT Port),18.9496,72.9525,HUB_PNQ,Pune (Chakan Auto Corridor),18.7606,73.8636,125.7,2.19,False
+HUB_BOM,Mumbai (JNPT Port),18.9496,72.9525,HUB_DEL,Delhi NCR (Gurugram Depot),28.5355,77.2732,1343.0,20.05,False
+HUB_BOM,Mumbai (JNPT Port),18.9496,72.9525,HUB_BLR,Bengaluru (Peenya Logistics Park),13.0285,77.5195,962.5,15.28,False
+HUB_BOM,Mumbai (JNPT Port),18.9496,72.9525,HUB_MAA,Chennai (Sriperumbudur Auto Cluster),12.9699,79.9405,1203.2,19.07,False
+HUB_BOM,Mumbai (JNPT Port),18.9496,72.9525,HUB_HYD,Hyderabad (Shamshabad Cargo Terminal),17.2403,78.4294,699.4,11.06,False
+HUB_BOM,Mumbai (JNPT Port),18.9496,72.9525,HUB_AMD,Ahmedabad (Sanand GIDC),22.9868,72.3804,553.8,8.81,False
+HUB_BOM,Mumbai (JNPT Port),18.9496,72.9525,HUB_CCU,Kolkata (Dankuni Freight Hub),22.6868,88.2936,1916.3,29.46,False
+HUB_PNQ,Pune (Chakan Auto Corridor),18.7606,73.8636,HUB_BOM,Mumbai (JNPT Port),18.9496,72.9525,136.6,2.32,False
+HUB_PNQ,Pune (Chakan Auto Corridor),18.7606,73.8636,HUB_DEL,Delhi NCR (Gurugram Depot),28.5355,77.2732,1264.8,20.03,False
+HUB_PNQ,Pune (Chakan Auto Corridor),18.7606,73.8636,HUB_BLR,Bengaluru (Peenya Logistics Park),13.0285,77.5195,852.2,13.53,False
+HUB_PNQ,Pune (Chakan Auto Corridor),18.7606,73.8636,HUB_MAA,Chennai (Sriperumbudur Auto Cluster),12.9699,79.9405,1093.0,17.31,False
+HUB_PNQ,Pune (Chakan Auto Corridor),18.7606,73.8636,HUB_HYD,Hyderabad (Shamshabad Cargo Terminal),17.2403,78.4294,590.0,9.23,False
+HUB_PNQ,Pune (Chakan Auto Corridor),18.7606,73.8636,HUB_AMD,Ahmedabad (Sanand GIDC),22.9868,72.3804,652.8,10.24,False
+HUB_PNQ,Pune (Chakan Auto Corridor),18.7606,73.8636,HUB_CCU,Kolkata (Dankuni Freight Hub),22.6868,88.2936,1790.0,27.99,False
+HUB_DEL,Delhi NCR (Gurugram Depot),28.5355,77.2732,HUB_BOM,Mumbai (JNPT Port),18.9496,72.9525,1342.9,20.03,False
+HUB_DEL,Delhi NCR (Gurugram Depot),28.5355,77.2732,HUB_PNQ,Pune (Chakan Auto Corridor),18.7606,73.8636,1279.7,19.95,False
+HUB_DEL,Delhi NCR (Gurugram Depot),28.5355,77.2732,HUB_BLR,Bengaluru (Peenya Logistics Park),13.0285,77.5195,2002.4,31.01,False
+HUB_DEL,Delhi NCR (Gurugram Depot),28.5355,77.2732,HUB_MAA,Chennai (Sriperumbudur Auto Cluster),12.9699,79.9405,2153.6,34.56,False
+HUB_DEL,Delhi NCR (Gurugram Depot),28.5355,77.2732,HUB_HYD,Hyderabad (Shamshabad Cargo Terminal),17.2403,78.4294,1527.2,24.6,False
+HUB_DEL,Delhi NCR (Gurugram Depot),28.5355,77.2732,HUB_AMD,Ahmedabad (Sanand GIDC),22.9868,72.3804,979.5,14.45,False
+HUB_DEL,Delhi NCR (Gurugram Depot),28.5355,77.2732,HUB_CCU,Kolkata (Dankuni Freight Hub),22.6868,88.2936,1440.1,21.37,False
+HUB_BLR,Bengaluru (Peenya Logistics Park),13.0285,77.5195,HUB_BOM,Mumbai (JNPT Port),18.9496,72.9525,963.3,15.28,False
+HUB_BLR,Bengaluru (Peenya Logistics Park),13.0285,77.5195,HUB_PNQ,Pune (Chakan Auto Corridor),18.7606,73.8636,850.8,13.46,False
+HUB_BLR,Bengaluru (Peenya Logistics Park),13.0285,77.5195,HUB_DEL,Delhi NCR (Gurugram Depot),28.5355,77.2732,2004.3,31.18,False
+HUB_BLR,Bengaluru (Peenya Logistics Park),13.0285,77.5195,HUB_MAA,Chennai (Sriperumbudur Auto Cluster),12.9699,79.9405,298.2,4.92,False
+HUB_BLR,Bengaluru (Peenya Logistics Park),13.0285,77.5195,HUB_HYD,Hyderabad (Shamshabad Cargo Terminal),17.2403,78.4294,547.3,9.42,False
+HUB_BLR,Bengaluru (Peenya Logistics Park),13.0285,77.5195,HUB_AMD,Ahmedabad (Sanand GIDC),22.9868,72.3804,1433.9,22.37,False
+HUB_BLR,Bengaluru (Peenya Logistics Park),13.0285,77.5195,HUB_CCU,Kolkata (Dankuni Freight Hub),22.6868,88.2936,1855.5,29.75,False
+HUB_MAA,Chennai (Sriperumbudur Auto Cluster),12.9699,79.9405,HUB_BOM,Mumbai (JNPT Port),18.9496,72.9525,1203.9,19.09,False
+HUB_MAA,Chennai (Sriperumbudur Auto Cluster),12.9699,79.9405,HUB_PNQ,Pune (Chakan Auto Corridor),18.7606,73.8636,1091.4,17.27,False
+HUB_MAA,Chennai (Sriperumbudur Auto Cluster),12.9699,79.9405,HUB_DEL,Delhi NCR (Gurugram Depot),28.5355,77.2732,2148.4,34.62,False
+HUB_MAA,Chennai (Sriperumbudur Auto Cluster),12.9699,79.9405,HUB_BLR,Bengaluru (Peenya Logistics Park),13.0285,77.5195,298.7,4.95,False
+HUB_MAA,Chennai (Sriperumbudur Auto Cluster),12.9699,79.9405,HUB_HYD,Hyderabad (Shamshabad Cargo Terminal),17.2403,78.4294,643.1,10.29,False
+HUB_MAA,Chennai (Sriperumbudur Auto Cluster),12.9699,79.9405,HUB_AMD,Ahmedabad (Sanand GIDC),22.9868,72.3804,1674.5,26.18,False
+HUB_MAA,Chennai (Sriperumbudur Auto Cluster),12.9699,79.9405,HUB_CCU,Kolkata (Dankuni Freight Hub),22.6868,88.2936,1687.5,26.94,False
+HUB_HYD,Hyderabad (Shamshabad Cargo Terminal),17.2403,78.4294,HUB_BOM,Mumbai (JNPT Port),18.9496,72.9525,699.7,11.08,False
+HUB_HYD,Hyderabad (Shamshabad Cargo Terminal),17.2403,78.4294,HUB_PNQ,Pune (Chakan Auto Corridor),18.7606,73.8636,588.1,9.2,False
+HUB_HYD,Hyderabad (Shamshabad Cargo Terminal),17.2403,78.4294,HUB_DEL,Delhi NCR (Gurugram Depot),28.5355,77.2732,1521.2,24.7,False
+HUB_HYD,Hyderabad (Shamshabad Cargo Terminal),17.2403,78.4294,HUB_BLR,Bengaluru (Peenya Logistics Park),13.0285,77.5195,545.7,9.44,False
+HUB_HYD,Hyderabad (Shamshabad Cargo Terminal),17.2403,78.4294,HUB_MAA,Chennai (Sriperumbudur Auto Cluster),12.9699,79.9405,640.9,10.29,False
+HUB_HYD,Hyderabad (Shamshabad Cargo Terminal),17.2403,78.4294,HUB_AMD,Ahmedabad (Sanand GIDC),22.9868,72.3804,1150.7,18.03,False
+HUB_HYD,Hyderabad (Shamshabad Cargo Terminal),17.2403,78.4294,HUB_CCU,Kolkata (Dankuni Freight Hub),22.6868,88.2936,1441.7,22.81,False
+HUB_AMD,Ahmedabad (Sanand GIDC),22.9868,72.3804,HUB_BOM,Mumbai (JNPT Port),18.9496,72.9525,556.6,8.83,False
+HUB_AMD,Ahmedabad (Sanand GIDC),22.9868,72.3804,HUB_PNQ,Pune (Chakan Auto Corridor),18.7606,73.8636,644.9,10.11,False
+HUB_AMD,Ahmedabad (Sanand GIDC),22.9868,72.3804,HUB_DEL,Delhi NCR (Gurugram Depot),28.5355,77.2732,979.0,14.4,False
+HUB_AMD,Ahmedabad (Sanand GIDC),22.9868,72.3804,HUB_BLR,Bengaluru (Peenya Logistics Park),13.0285,77.5195,1438.1,22.42,False
+HUB_AMD,Ahmedabad (Sanand GIDC),22.9868,72.3804,HUB_MAA,Chennai (Sriperumbudur Auto Cluster),12.9699,79.9405,1678.8,26.2,False
+HUB_AMD,Ahmedabad (Sanand GIDC),22.9868,72.3804,HUB_HYD,Hyderabad (Shamshabad Cargo Terminal),17.2403,78.4294,1155.2,18.04,False
+HUB_AMD,Ahmedabad (Sanand GIDC),22.9868,72.3804,HUB_CCU,Kolkata (Dankuni Freight Hub),22.6868,88.2936,1965.3,30.55,False
+HUB_CCU,Kolkata (Dankuni Freight Hub),22.6868,88.2936,HUB_BOM,Mumbai (JNPT Port),18.9496,72.9525,1913.9,28.96,False
+HUB_CCU,Kolkata (Dankuni Freight Hub),22.6868,88.2936,HUB_PNQ,Pune (Chakan Auto Corridor),18.7606,73.8636,1782.2,27.52,False
+HUB_CCU,Kolkata (Dankuni Freight Hub),22.6868,88.2936,HUB_DEL,Delhi NCR (Gurugram Depot),28.5355,77.2732,1460.6,21.75,False
+HUB_CCU,Kolkata (Dankuni Freight Hub),22.6868,88.2936,HUB_BLR,Bengaluru (Peenya Logistics Park),13.0285,77.5195,1836.6,29.52,False
+HUB_CCU,Kolkata (Dankuni Freight Hub),22.6868,88.2936,HUB_MAA,Chennai (Sriperumbudur Auto Cluster),12.9699,79.9405,1702.5,26.57,False
+HUB_CCU,Kolkata (Dankuni Freight Hub),22.6868,88.2936,HUB_HYD,Hyderabad (Shamshabad Cargo Terminal),17.2403,78.4294,1443.5,22.63,False
+HUB_CCU,Kolkata (Dankuni Freight Hub),22.6868,88.2936,HUB_AMD,Ahmedabad (Sanand GIDC),22.9868,72.3804,1970.6,30.72,False

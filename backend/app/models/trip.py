@@ -22,6 +22,13 @@ class Trip(Base):
     distance_km = Column(Float, default=150.0, nullable=False)
     estimated_duration_hours = Column(Float, default=3.0, nullable=False)
     
+    # 3B OpenStreetMap Coordinates and Route Geometry
+    origin_lat = Column(Float, nullable=True)
+    origin_lng = Column(Float, nullable=True)
+    dest_lat = Column(Float, nullable=True)
+    dest_lng = Column(Float, nullable=True)
+    route_geometry = Column(String, nullable=True) # JSON serialized [[lat, lng], ...]
+    
     vehicle_id = Column(Integer, ForeignKey("vehicles.id"), nullable=False)
     driver_id = Column(Integer, ForeignKey("drivers.id"), nullable=False)
     
