@@ -1,0 +1,14 @@
+# Smart Fleet Management System - Backend Dependencies
+fastapi
+uvicorn[standard]
+sqlalchemy
+alembic
+pydantic
+pydantic-settings
+email-validator
+PyJWT
+httpx
+python-dotenv
+
+# PostgreSQL driver (uncomment when moving to PostgreSQL)
+# psycopg2-binary
